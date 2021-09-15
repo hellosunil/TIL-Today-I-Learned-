@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block title %}
+- SignUp
+{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-12 panel panel-default">
+           <div class="alert alert-info">
+        회원가입
+      </div>
+            <form action="" method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <input type="submit" class="btn btn-primary" value="Register">
+            </form>
+        </div>
+    </div>
+{% endblock %}
