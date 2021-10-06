@@ -1,0 +1,7 @@
+{
+    "installOptions": {
+        "installFromRepository": true,
+        "libraryPath": "C:/Users/sun/Documents/R/win-library/4.1",
+        "installDependencies": true
+    }
+}

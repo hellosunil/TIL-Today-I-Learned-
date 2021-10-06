@@ -250,6 +250,51 @@ mpg %>%
 
 
 
+# 시각화 구현하기
+
+# 산점도 그래프 그리기
+
+# 배경 설정하기
+ggplot(data=mpg, aes(x=displ, y=hwy))
+
+# 배경에 산점도 추가
+ggplot(data=mpg, aes(x=displ, y=hwy)) + 
+  geom_point() + 
+  xlim(3, 6) +
+  ylim(10, 30)
+
+
+# 막대 그래프 그리기
+
+df_mpg <- mpg %>%
+  group_by(drv) %>%
+  summarise(mean_hwy = mean(hwy, na.rm=T))
+
+ggplot(data=df_mpg, aes(x = reorder(drv, -mean_hwy), y=mean_hwy)) + geom_col()
+
+# 빈도 막대 그래프 그리기
+
+ggplot(data=mpg, aes(x=drv)) + geom_bar()
+
+# 변수의 분포를 나타내는 빈도막대그래프(x축 연속형 자료)
+ggplot(data=mpg, aes(x=hwy)) + geom_bar()
+
+
+
+
+# 선 그래프 그리기
+
+ggplot(data=economics, aes(x=date, y=unemploy)) + geom_line()
+
+# 상자 그래프 그리기
+
+ggplot(data=mpg, aes(x=drv, y=hwy)) + geom_boxplot()
+
+
+
+
+
+
 
 
 

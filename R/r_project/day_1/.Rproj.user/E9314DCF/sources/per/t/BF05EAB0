@@ -1,0 +1,26 @@
+{
+    "id": "BF05EAB0",
+    "path": "C:/r_project/day_1/test2.R",
+    "project_path": "test2.R",
+    "type": "r_source",
+    "hash": "17253290",
+    "contents": "",
+    "dirty": false,
+    "created": 1633489294472.0,
+    "source_on_save": false,
+    "relative_order": 1,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "294,0",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1633491588,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1633491588557,
+    "read_only": false,
+    "read_only_alternatives": []
+}
