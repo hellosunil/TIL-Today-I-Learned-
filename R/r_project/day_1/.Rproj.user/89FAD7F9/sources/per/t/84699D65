@@ -1,0 +1,27 @@
+{
+    "id": "84699D65",
+    "path": "C:/r_project/day_1/test2.R",
+    "project_path": "test2.R",
+    "type": "r_source",
+    "hash": "606389882",
+    "contents": "",
+    "dirty": false,
+    "created": 1633411527277.0,
+    "source_on_save": false,
+    "relative_order": 2,
+    "properties": {
+        "tempName": "Untitled1",
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "238,0",
+        "scrollLine": "212"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1633482528,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1633482528586,
+    "read_only": false,
+    "read_only_alternatives": []
+}
