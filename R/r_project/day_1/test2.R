@@ -225,14 +225,25 @@ outlier %>%
 mpg <- as.data.frame(ggplot2::mpg)
 boxplot(mpg$hwy)
 
+boxplot(mpg$hwy)$stats
 
+# [,1]        
+# [1,]   12   극단치 경계
+# [2,]   18   1사분위수
+# [3,]   24   중앙값
+# [4,]   27   3사분위수
+# [5,]   37   극단치
 
+## ==> 12 ~ 37 범위를 넘어가면 극단치 처리
 
+mpg$hwy <- ifelse(mpg$hwy < 12 | mpg$hwy > 37, NA, mpg$hwy)
+table(is.na(mpg$hwy))
 
+#결측치 제외하고 분석 수행하기
 
-
-
-
+mpg %>%
+  group_by(drv) %>%
+  summarise(mean_hwy = mean(hwy, na.rm = T))
 
 
 
