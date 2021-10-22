@@ -241,3 +241,205 @@ SELECT *
     OR COMM IS NULL;
 
 # 집합연산자(UNION) 사용하여 출력하기
+
+SELECT EMPNO, ENAME, SAL, DEPTNO
+    FROM EMP
+    WHERE DEPTNO = 10
+    OR DEPTNO = 20;
+
+SELECT EMPNO, ENAME, SAL, DEPTNO
+    FROM EMP
+    WHERE DEPTNO = 10
+    UNION
+    SELECT EMPNO, ENAME, SAL, DEPTNO
+    FROM EMP
+    WHERE DEPTNO = 20;
+    
+## UNION 사용시 주의점! ==> 출력 열의 개수와 자료형이 같아야 함
+
+SELECT EMPNO, ENAME, SAL, DEPTNO
+    FROM EMP
+    WHERE DEPTNO = 10
+UNION
+SELECT SAL, JOB, DEPTNO, SAL
+    FROM EMP
+    WHERE DEPTNO = 20;
+# ==> 결과는 이상하지만 열 개수와 자료형이 같기 때문에 오류 없이 출력!
+
+# 집합 연산자의 종류 및 기능
+# UNION : 합집합 // 중복값은 제거됨
+# UNION ALL : 합집합 // 중복값도 중복 표시
+# MINUS : 차집합
+# INTERSECT : 교집합
+
+SELECT EMPNO, ENAME, SAL, DEPTNO
+    FROM EMP
+    WHERE DEPTNO = 10
+UNION ALL # UNION을 쓴다면 한번씩만, UNION ALL을 쓰면 두번씩 반복해서 결과 출력
+SELECT EMPNO, ENAME, SAL, DEPTNO
+    FROM EMP
+    WHERE DEPTNO = 10;
+    
+SELECT EMPNO, ENAME, SAL, DEPTNO
+    FROM EMP
+MINUS
+SELECT EMPNO, ENAME, SAL, DEPTNO
+    FROM EMP
+    WHERE DEPTNO = 10;
+    
+SELECT EMPNO, ENAME, SAL, DEPTNO
+    FROM EMP
+INTERSECT
+SELECT EMPNO, ENAME, SAL, DEPTNO
+    FROM EMP
+    WHERE DEPTNO = 10;
+    
+    
+# Q1 P125
+
+SELECT *
+    FROM EMP
+    WHERE ENAME LIKE '%S';
+
+# Q2 P125
+
+SELECT EMPNO, ENAME, JOB, SAL, DEPTNO
+    FROM EMP
+    WHERE DEPTNO = 30
+    AND JOB = 'SALESMAN';
+    
+# Q3 P125
+
+SELECT EMPNO, ENAME, JOB, SAL, DEPTNO
+    FROM EMP
+    WHERE DEPTNO IN (20, 30)
+    AND SAL >2000;
+    
+SELECT EMPNO, ENAME, JOB, SAL, DEPTNO
+    FROM EMP
+    WHERE DEPTNO = 20
+    AND SAL > 2000
+UNION
+SELECT EMPNO, ENAME, JOB, SAL, DEPTNO
+    FROM EMP
+    WHERE DEPTNO = 30
+    AND SAL > 2000;
+    
+# Q4 P126
+
+SELECT EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO
+    FROM EMP
+    WHERE SAL >= 2000
+    OR SAL <= 3000;
+    
+# Q5 P126
+
+SELECT ENAME, EMPNO, SAL, DEPTNO
+    FROM EMP
+    WHERE ENAME LIKE '%E%'
+    AND DEPTNO = 30
+    AND SAL NOT BETWEEN 1000 AND 2000;
+    
+# Q6 P126
+
+SELECT *
+    FROM EMP
+    WHERE COMM IS NULL
+    AND MGR IS NOT NULL
+    AND JOB IN ('MANAGER', 'CLERK')
+    AND ENAME NOT LIKE '_L';
+
+
+# 데이터 처리와 가공을 위한 오라클 함수 사용하기
+# 내장 함수의 종류
+# 단일행 함수 : 행별로 함수 처리
+# 다중행 함수 : 여러 행에 함수가 동시에 처리되어 단일 행 출력
+
+# 문자 데이터를 가공하는 문자 함수
+
+# 대소문자를 바꾸는 UPPER, LOWER, INITCAP
+# UPEER(문자열) : 문자열 모두를 대문자로 변환
+# LOWER(문자열) : 문자열 모두를 소문자로 변환
+# INITCAP(문자열) : 첫글자는 대문자로, 나머지는 소문자로 변환
+
+SELECT ENAME, UPPER(ENAME), LOWER(ENAME), INITCAP(ENAME)
+    FROM EMP;
+    
+# 활용 : 문자열 데이터는 대소문자를 구분하기 때문에 문자열 데이터를 찾을 때 이용
+
+SELECT *
+    FROM EMP
+    WHERE UPPER(ENAME) = UPPER('SCOTT');
+    
+SELECT *
+    FROM EMP
+    WHERE UPPER(ENAME) LIKE UPPER('%SCOTT%');
+
+# 사원 이름을 모두 대문자로 출력    
+SELECT UPPER(ENAME)
+    FROM EMP;
+    
+# 문자열의 길이를 구하는 LENGTH 함수
+
+SELECT ENAME, LENGTH(ENAME)
+    FROM EMP;
+    
+# WHERE 절에서 LENGTH 함수 사용하기
+
+SELECT ENAME, LENGTH(ENAME)
+    FROM EMP
+    WHERE LENGTH(ENAME) >= 5;
+
+# LENGTH 함수와 LENGTHB 함수
+
+SELECT LENGTH('한글'), LENGTHB('한글')
+    FROM DUAL;
+    
+# 직책이름이 6글자 이상인 데이터만 출력
+
+SELECT *
+    FROM EMP
+    WHERE LENGTH(JOB) >= 6;
+    
+# 문자열 일부를 추출하는 SUBSTR 함수
+
+# SUBSTR(문자열 데이터, 시작 위치, 추출 길이)
+# SUBSTR(문자열 데이터, 시작 위치) : 시작위치 ~ 끝까지 출력
+
+SELECT JOB, SUBSTR(JOB, 1, 2), SUBSTR(JOB, 3, 2), SUBSTR(JOB, 5)
+    FROM EMP;
+
+SELECT SUBSTR(ENAME, 3)
+    FROM EMP;
+    
+# SUBSTR 함수 안에 다른 함수 함께 사용하기
+SELECT JOB,
+    SUBSTR(JOB, -LENGTH(JOB)),
+    SUBSTR(JOB, -LENGTH(JOB), 2),
+    SUBSTR(JOB, -3)
+    FROM EMP;
+    
+# 문자열 데이터 안에서 특정 문자의 위치를 찾는 INSTR함수
+
+SELECT INSTR('HELLO, ORACLE', 'L') AS INSTR_1,
+    INSTR('HELLO, ORACLE', 'L', 5) AS INSTR_2, #몇 번째 부터
+    INSTR('HELLO, ORACLE', 'L', 2, 2) AS INSTR_3 # 몇 번째 L
+    FROM DUAL;
+
+# 특정 문자를 포함하고 있는 행 찾기
+# INSTR함수로 사원 이름에 문자 S가 있는 행 구하기
+
+SELECT *
+    FROM EMP
+    WHERE INSTR(ENAME, 'S') > 0;
+    
+SELECT *
+    FROM EMP
+    WHERE ENAME LIKE '%S%';
+    
+# 특정 문자를 다른 문자열로 바꾸는 REPLACE함수
+
+SELECT '010-1234-5678' AS REPLACE_BEFORE,
+    REPLACE('010-1234-5678', '-', ' ') AS REPLACE_1,
+    REPLACE('010-1234-5678', '-') AS REPLACE_2
+    FROM DUAL;
