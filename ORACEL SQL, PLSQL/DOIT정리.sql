@@ -918,6 +918,504 @@ SELECT DEPTNO, JOB, AVG(SAL)
     FROM EMP
    GROUP BY DEPTNO, JOB
     HAVING AVG(SAL) >= 500
-   ORDER BY DEPTNO, JOB
+   ORDER BY DEPTNO, JOB;
    
 -- GROUP BY와 관련된 심화 함수
+-- ROLLUP, CUBE, GROUPING SETS 함수
+
+-- ROLLUP, CUBE > 그룹화 데이터의 합계를 함께 출력
+
+SELECT DEPTNO, JOB, COUNT(*), MAX(SAL), SUM(SAL), AVG(SAL)
+    FROM EMP
+   GROUP BY ROLLUP(DEPTNO, JOB)
+   ORDER BY DEPTNO, JOB;
+   
+SELECT DEPTNO, JOB, COUNT(*), MAX(SAL), SUM(SAL), AVG(SAL)
+    FROM EMP
+   GROUP BY CUBE(DEPTNO, JOB)
+   ORDER BY DEPTNO, JOB;
+
+-- ROLLUP(A, B, C) => N+1개의 결과
+-- 1. A 그룹별 B 그룹별, C 그룹에 해당하는 결과
+-- 2. A 그룹별 B 그룹에 해당하는 결과
+-- 3. A 그룹에 해당하는 결과
+-- 4. 전체 결과
+
+-- CUBE(A, B, C) => 2^N 개의 결과
+-- 1. A 그룹별 B 그룹별, C 그룹에 해당하는 결과
+-- 2. A 그룹별 B 그룹에 해당하는 결과
+-- 3. B 그룹별 C 그룹에 해당하는 결과
+-- 4. A 그룹별 C 그룹에 해당하는 결과
+-- 5. A 그룹결과
+-- 6. B 그룹결과
+-- 7. C 그룹결과
+-- 8. 전체 결과
+
+-- PARTIAL ROLLUP/ CUBE
+-- DEPTNO로 그룹화 후에 ROLLUP함수 적용
+SELECT DEPTNO, JOB, COUNT(*)
+    FROM EMP
+   GROUP BY DEPTNO, ROLLUP(JOB);
+   
+SELECT DEPTNO, JOB, COUNT(*)
+    FROM EMP
+   GROUP BY ROLLUP(DEPTNO, JOB);
+
+
+-- JOB으로 그룹화 후에 ROLLUP함수 적용
+SELECT DEPTNO, JOB, COUNT(*)
+    FROM EMP
+   GROUP BY JOB, ROLLUP(DEPTNO);
+   
+   
+-- 지정한 모든 열을 각각 대그룹으로 처리하여 출력하기 GROUPING SETS 함수
+SELECT DEPTNO, JOB, AVG(SAL)
+    FROM EMP
+   GROUP BY GROUPING SETS(DEPTNO, JOB)
+   ORDER BY DEPTNO, JOB;
+   
+-- GROUPING 함수 > GROUP BY 절에서 지정된 열이 그룹화되었는지 확인
+
+SELECT DEPTNO, JOB, COUNT(*), MAX(SAL), SUM(SAL), AVG(SAL),
+       GROUPING(DEPTNO),
+       GROUPING(JOB)
+    FROM EMP
+   GROUP BY CUBE(DEPTNO, JOB)
+   ORDER BY DEPTNO, JOB;
+-- 0 : 그룹화 되었음을 의미, 1 : 그룹화 되지 않았음을 의미
+
+-- DECODE 문으로 GROUPING 함수를 적용하여 결과 표기하기
+
+SELECT DECODE(GROUPING(DEPTNO), 1, 'ALL_DEPT', DEPTNO) AS DEPTNO,
+       DECODE(GROUPING(JOB), 1, 'ALL_JOB', JOB) AS JOB,
+       COUNT(*), MAX(SAL), SUM(SAL), AVG(SAL)
+    FROM EMP
+   GROUP BY CUBE(DEPTNO, JOB)
+   ORDER BY DEPTNO, JOB;
+   
+-- GROUPING_ID : 한 번에 여러 열을 지정할 수 있음 GROUPING과 동일하지만,
+-- 0, 1로 구분되지 않음
+-- A, B = 0, 0 = 0 || 그룹화 X = 0
+-- A, B = 0, 1 = 1 || A로 그룹화 = 1
+-- A, B = 1, 0 = 2 || B로 그룹화 = 2
+-- A, B = 1, 1 = 3 || A, B로 그룹화 = 3
+
+SELECT DEPTNO, JOB, COUNT(*), SUM(SAL),
+       GROUPING(DEPTNO),
+       GROUPING(JOB),
+       GROUPING_ID(DEPTNO, JOB)
+    FROM EMP
+   GROUP BY CUBE(DEPTNO, JOB)
+   ORDER BY DEPTNO, JOB;
+
+-- LISTAGG 함수 > 그룹에 속해있는 데이터를 가로롤 나열
+SELECT ENAME
+    FROM EMP
+   WHERE DEPTNO = 10;
+
+-- 여기서 20, 30 부서의 사원이름도 출력하고 싶을 때,
+-- DEPTNO만 그룹화하면 사원 이름은 출력 불가능
+
+SELECT DEPTNO, ENAME
+    FROM EMP
+   GROUP BY DEPTNO, ENAME;
+-- 이 같은 방법을 쓸 수는 있지만, 행이 너무 많아짐
+-- 그럴 때 LISTAGG함수를 사용함
+
+SELECT DEPTNO,
+       LISTAGG(ENAME, ', ')
+       WITHIN GROUP(ORDER BY SAL DESC) AS ENAMES -- 정렬기준
+    FROM EMP
+   GROUP BY DEPTNO;
+   
+-- PIVOT, UNPIVOT함수
+-- PIVOT : 기존 테이블 행을 열로 바꿈
+-- UNPIVOT : 기존 테이블 열을 행으로 바꿈
+
+SELECT DEPTNO, JOB, MAX(SAL)
+    FROM EMP
+   GROUP BY DEPTNO, JOB
+   ORDER BY DEPTNO, JOB;
+   
+-- PIVOT 함수를 이용하여 직책별, 부서별 최고 급여를 2차원 표 형태로 출력하기
+SELECT *
+    FROM(SELECT DEPTNO, JOB, SAL -- 서브쿼리문 추후 다룰 예정
+         FROM EMP)
+   PIVOT(MAX(SAL) -- 실제 출력될 데이터
+        FOR DEPTNO IN (10, 20, 30) -- FOR 가로줄로 표기할 열, IN 출력하려는 열
+        )
+   ORDER BY JOB; -- 세로 행 정렬 기준
+   
+SELECT *
+    FROM(SELECT JOB, DEPTNO, SAL
+         FROM EMP)
+   PIVOT(MAX(SAL)
+        FOR JOB IN ('CLERK' AS CLERK,
+                    'SALESMAN' AS SALESMAN,
+                    'PRESIDENT' AS PRESIDENT,
+                    'MANAGER' AS MANAGER,
+                    'ANALYST' AS ANALYST)
+        )
+   ORDER BY DEPTNO;
+   
+-- DECODE문을 이용하여 PIVOT함수와 같은 출력 구현하기
+SELECT DEPTNO,
+       MAX(DECODE(JOB, 'CLERK', SAL)) AS CLERK,
+       MAX(DECODE(JOB, 'SALESMAN', SAL)) AS SALESMAN,
+       MAX(DECODE(JOB, 'PRESIDENT', SAL)) AS PRESIDENT,
+       MAX(DECODE(JOB, 'MANAGER', SAL)) AS MANAGER,
+       MAX(DECODE(JOB, 'ANALYST', SAL)) AS ANALYST
+    FROM EMP
+   GROUP BY DEPTNO
+   ORDER BY DEPTNO;
+   
+-- UNPIVOT 함수를 사용하여 열로 구분된 그룹을 행으로 출력하기
+
+SELECT *
+    FROM(SELECT DEPTNO,
+                MAX(DECODE(JOB, 'CLERK', SAL)) AS CLERK,
+                MAX(DECODE(JOB, 'SALESMAN', SAL)) AS SALESMAN,
+                MAX(DECODE(JOB, 'PRESIDENT', SAL)) AS PRESIDENT,
+                MAX(DECODE(JOB, 'MANAGER', SAL)) AS MANAGER,
+                MAX(DECODE(JOB, 'ANALYST', SAL)) AS ANALYST
+            FROM EMP
+           GROUP BY DEPTNO
+           ORDER BY DEPTNO)
+       UNPIVOT(SAL
+        FOR JOB IN (CLERK, SALESMAN, PRESIDENT, MANAGER, ANALYST))
+    ORDER BY DEPTNO, JOB;
+    
+-- 7-1
+DESC EMP;
+SELECT DEPTNO,
+       TRUNC(AVG(SAL)) AS AVG_SAL,
+       MAX(SAL) AS MAX_SAL,
+       MIN(SAL) AS MIN_SAL,
+       COUNT(*) AS CNT
+    FROM EMP
+   GROUP BY DEPTNO
+   ORDER BY DEPTNO DESC;
+   
+SELECT DEPTNO,
+       TRUNC(AVG(SAL)) AS AVG_SAL,
+       MAX(SAL) AS MAX_SAL,
+       MIN(SAL) AS MIN_SAL,
+       COUNT(*) AS CNT
+  FROM EMP
+GROUP BY DEPTNO; 
+
+-- 7-2
+
+SELECT JOB, COUNT(*)
+    FROM EMP
+   GROUP BY JOB
+  HAVING COUNT(*) >= 3;
+  
+-- 7-3
+
+SELECT TO_CHAR(HIREDATE, 'YYYY') AS HIRE_YEAR,
+       DEPTNO,
+       COUNT(*) AS CNT
+    FROM EMP
+   GROUP BY HIRE_YEAR, DEPTNO;
+-- 별칭을 GROUP BY에 지정할 수 없음!!
+   
+SELECT TO_CHAR(HIREDATE, 'YYYY') AS HIRE_YEAR,
+       DEPTNO,
+       COUNT(*) AS CNT
+  FROM EMP
+GROUP BY TO_CHAR(HIREDATE, 'YYYY'), DEPTNO; 
+
+-- 7-4
+
+SELECT CASE
+        WHEN COMM IS NULL THEN 'X'
+        ELSE 'O'
+       END AS EXIST_COMM,
+       COUNT(*) AS CNT
+    FROM EMP
+   GROUP BY CASE
+        WHEN COMM IS NULL THEN 'X'
+        ELSE 'O'
+       END AS EXIST_COMM
+-- 오류 발생!! CASE문은 GROUP BY 항에 넣을 수 없음! ==> NVL2로 사용!
+
+SELECT NVL2(COMM, 'O', 'X') AS EXIST_COMM,
+       COUNT(*) AS CNT
+  FROM EMP
+GROUP BY NVL2(COMM, 'O', 'X'); 
+
+-- 7-4
+
+SELECT DEPTNO,
+       TO_CHAR(HIREDATE, 'YYYY') AS HIRE_YEAR,
+       COUNT(*),
+       MAX(SAL) AS MAX_SAL,
+       SUM(SAL) AS SUM_SAL,
+       AVG(SAL) AS AVG_SAL
+   FROM EMP
+GROUP BY ROLLUP(DEPTNO, TO_CHAR(HIREDATE, 'YYYY'));
+   
+SELECT DEPTNO,
+       TO_CHAR(HIREDATE, 'YYYY') AS HIRE_YEAR,
+       COUNT(*) AS CNT,
+       MAX(SAL) AS MAX_SAL,
+       SUM(SAL) AS SUM_SAL,
+       AVG(SAL) AS AVG_SAL
+  FROM EMP
+GROUP BY ROLLUP(DEPTNO, TO_CHAR(HIREDATE, 'YYYY')); 
+
+
+-- JOIN 함수 (여러 테이블을 하나로 합치기)
+-- UNION : 두 개 이상의 SELECT문을 세로로 연결
+-- JOIN : 두 개 이상의 SELECT문을 가로로 연결
+
+DESC DEPT;
+
+SELECT *
+    FROM EMP, DEPT
+   ORDER BY EMPNO;
+   
+-- 열 이름을 비교하는 조건식으로 조인하기
+SELECT *
+    FROM EMP, DEPT
+   WHERE EMP.DEPTNO = DEPT.DEPTNO
+  ORDER BY EMPNO;
+  
+-- 테이블 이름을 별칭으로 지정하기
+SELECT *
+    FROM EMP E, DEPT D
+   WHERE E.DEPTNO = D.DEPTNO
+  ORDER BY EMPNO;
+-- FROM 의 별칭은 WHERE 절에 곧바로 쓸 수 있음!
+-- 보통의 경우 *로 출력하지 않음! (순서 지정, 변화 감지(새로운 열 생성 등)를 위해)
+
+SELECT E.EMPNO, E.ENAME, E.JOB, E.MGR, E.HIREDATE, E.SAL, E.COMM, E.DEPTNO,
+       D.DNAME, D.LOC
+    FROM EMP E, DEPT D
+   WHERE E.DEPTNO = D.DEPTNO
+  ORDER BY EMPNO;
+  
+-- 1분 복습
+SELECT E.EMPNO, D.DNAME
+    FROM EMP E, DEPT D
+   WHERE E.DEPTNO = D.DEPTNO
+  ORDER BY EMPNO;
+  
+-- JOIN의 종류 1) 등가 조인(EQUI JOIN) : 특 정 열에 일치한 데이터를 기준으로 조인
+-- 여러 테이블의 열 이름이 같을 때 주의점
+
+SELECT EMPNO, ENAME, DEPTNO, DNAME, LOC
+    FROM EMP E, DEPT D
+   WHERE E.DEPTNO = D.DEPTNO;
+-- 오류 발생!
+SELECT EMPNO, ENAME, E.DEPTNO, DNAME, LOC
+    FROM EMP E, DEPT D
+   WHERE E.DEPTNO = D.DEPTNO;
+
+-- 보통은 모든 별칭을 명시해 줌!
+SELECT E.EMPNO, E.ENAME, D.DEPTNO, D.DNAME, D.LOC
+    FROM EMP E, DEPT D
+   WHERE E.DEPTNO = D.DEPTNO
+  ORDER BY D.DEPTNO, E.EMPNO;
+  
+-- WHERE 절에 조건식 추가하여 출력하기
+
+SELECT E.EMPNO, E.ENAME, D.DEPTNO, D.DNAME, D.LOC
+    FROM EMP E, DEPT D
+   WHERE E.DEPTNO = D.DEPTNO
+    AND SAL >= 3000
+  ORDER BY D.DEPTNO, E.EMPNO;
+
+-- 비등가 조인 : 일치하는 값을 기준으로 하는 것이 아닌 모든 조인
+
+SELECT *
+    FROM EMP E, SALGRADE S
+   WHERE E.SAL BETWEEN S.LOSAL AND S.HISAL;
+   
+-- 자체 조인 : 같은 테이블의 내용을 조인해야 할 때 사용
+-- 테이블을 복사해서 사용할 수 있지만, 용량/속도 면에서 매우 불리
+
+-- 완전히 같은 테이블(COPY_EMP)가 존재할 때 (예시, 시용 안 함)
+SELECT *
+    FROM EMP E, COPY_EMP C
+   WHERE E.MGR = C.EMPNO;
+   
+-- 테이블을 두 번 이용하여 자체 조인
+
+SELECT E1.EMPNO, E1.ENAME, E1.MGR,
+       E2.EMPNO AS MGR_EMPNO,
+       E2.ENAME AS MGR_ENAME
+    FROM EMP E1, EMP E2
+   WHERE E1.MGR = E2.EMPNO;
+   
+-- 외부 조인 : 위 테이블은 KING데이터 누락 : KING은 상급자가 없으므로
+-- 하지만, 상급자 값이 NULL이어도 출력해야 할 때가 있음
+-- 1) 왼쪽 외부 조인 : WHERE TABLE1.COL1 = TABLE2.COL1(+)
+-- 2) 오른쪽 외부 조인 : WHERE TABLE1.COL1(+) = TABLE2.COL1
+
+-- 왼쪽 외부조인 사용하기 : 왼쪽 열을 기준으로 오른쪽 열의 데이터 존재여부에 상관없이 출력
+SELECT E1.EMPNO, E1.ENAME, E1.MGR,
+       E2.EMPNO AS MGR_EMPNO,
+       E2.ENAME AS MGR_ENAME
+    FROM EMP E1, EMP E2
+   WHERE E1.MGR = E2.EMPNO(+)
+  ORDER BY E1.EMPNO;
+  
+-- 오른쪽 외부조인 사용하기 : 오른쪽 열을 기준으로 왼쪽 열의 데이터 존재여부에 상관없이 출력
+SELECT E1.EMPNO, E1.ENAME, E1.MGR,
+       E2.EMPNO AS MGR_EMPNO,
+       E2.ENAME AS MGR_ENAME
+    FROM EMP E1, EMP E2
+   WHERE E1.MGR(+) = E2.EMPNO
+  ORDER BY E1.EMPNO;
+-- 즉, 부하직원이 없는 사원들도 출력됨
+-- 주의점 : 전체 외부 조인은 사용이 불가능함!
+
+
+-- SQL-99 표준 문법으로 사용하는 조인
+
+-- 등가 조인 : NATURAL JOIN
+SELECT E.EMPNO, E.ENAME, E.JOB, E.MGR, E.HIREDATE, E.SAL, E.COMM,
+       DEPTNO, D.DNAME, D.LOC
+    FROM EMP E NATURAL JOIN DEPT D
+   ORDER BY DEPTNO, E.EMPNO;
+-- 기존과 달리 WHERE절이 아닌 FROM절에 사용
+-- 두 테이블에 같은 열(DEPTNO)을 자동으로 찾아서 조인해줌
+-- 대신, 기존과 달리 SELECT절에 DEPTNO를 E.DEPTNO, D.DEPTNO로 써주면 안 됨!
+
+-- 등가 조인 : JOIN ~ USING > 기준 열을 명시해주는 등가 조인
+SELECT E.EMPNO, E.ENAME, E.JOB, E.MGR, E.HIREDATE, E.SAL, E.COMM,
+       DEPTNO, D.DNAME, D.LOC
+    FROM EMP E JOIN DEPT D USING(DEPTNO)
+   ORDER BY DEPTNO, E.EMPNO;
+-- 역시, 기준 열로 명시된 열은 SELECT에서 테이블 명을 입력하면 안 됨!
+
+-- 등가 조인 : JOIN ~ ON > 가장 범용적인 방식
+SELECT E.EMPNO, E.ENAME, E.JOB, E.MGR, E.HIREDATE, E.SAL, E.COMM,
+       E.DEPTNO, D.DNAME, D.LOC
+    FROM EMP E JOIN DEPT D ON(E.DEPTNO = D.DEPTNO)
+   WHERE SAL <= 3000
+  ORDER BY DEPTNO, E.EMPNO;
+-- 이 때는 SELECT문에 테이블 명을 명시해줘야 함!
+
+
+-- 외부 조인 : 1)왼쪽, 2)오른쪽, 3)젠체(SQL-99에서만 존재, 기존 : UNION 활용)
+-- 1) 왼쪽 : FROM TABLE1 LEFT OUTER JOIN TABLE 2 ON ~
+-- 2) 오른쪽 : FROM TABLE1 RIGHT OUTER JOIN TABLE2 ON ~
+-- 3) 전체 : FROM TABLE1 FULL OUTER JOIN TABLE2 ON ~
+
+-- 왼쪽 외부 조인
+SELECT E1.EMPNO, E1.ENAME, E1.MGR,
+       E2.EMPNO AS MGR_EMPNO,
+       E2.ENAME AS MGR_ENAME
+    FROM EMP E1 LEFT OUTER JOIN EMP E2 ON (E1.MGR = E2.EMPNO)
+   ORDER BY E1.EMPNO;
+   
+-- 오른쪽 외부 조인
+SELECT E1.EMPNO, E1.ENAME, E1.MGR,
+       E2.EMPNO AS MGR_EMPNO,
+       E2.ENAME AS MGR_ENAME
+    FROM EMP E1 RIGHT OUTER JOIN EMP E2 ON (E1.MGR = E2.EMPNO)
+   ORDER BY E1.EMPNO, MGR_EMPNO;
+   
+-- 전체 외부 조인
+SELECT E1.EMPNO, E1.ENAME, E1.MGR,
+       E2.EMPNO AS MGR_EMPNO,
+       E2.ENAME AS MGR_ENAME
+    FROM EMP E1 FULL OUTER JOIN EMP E2 ON (E1.MGR = E2.EMPNO)
+   ORDER BY E1.EMPNO;
+   
+-- SQL-99와 ORACLE 문법 중 편한 것으로 사용하면 됨!
+-- 가독성은 SQL-99 쪽이 탁월
+
+-- 3개 이상의 테이블을 조인하기
+-- 기존
+--FROM TABLE1, TABLE2, TABLE3
+--WHERE TABLE1.COL = TABLE2.COL
+--AND TABLE2.COL = TABLE3.COL
+
+-- SQL-99
+--FROM TABLE1 JOIN TABLE2 ON (조건식)
+--JOIN TABLE3 ON (조건식)
+--그냥 옆에 또다른 조건식을 나열해주면 됨!
+
+-- 8-1
+SELECT E.DEPTNO, D.DNAME, E.EMPNO, E.ENAME, E.SAL
+    FROM EMP E JOIN DEPT D ON (E.DEPTNO = D.DEPTNO)
+   WHERE SAL > 2000
+  ORDER BY DEPTNO;
+  
+-- 8-2
+SELECT E.DEPTNO, D.DNAME,
+       TRUNC(AVG(SAL)) AS AVG_SAL,
+       MAX(SAL) AS MAX_SAL,
+       MIN(SAL) AS MIN_SAL,
+       COUNT(*) AS CNT
+    FROM EMP E JOIN DEPT D ON (E.DEPTNO = D.DEPTNO)
+   GROUP BY E.DEPTNO, D.DNAME
+   ORDER BY E.DEPTNO;
+   
+SELECT DEPTNO,
+       D.DNAME,
+       TRUNC(AVG(SAL)) AS AVG_SAL,
+       MAX(SAL) AS MAX_SAL,
+       MIN(SAL) AS MIN_SAL,
+       COUNT(*) AS CNT
+  FROM EMP E JOIN DEPT D USING (DEPTNO)
+GROUP BY DEPTNO, D.DNAME;
+
+-- 8-3 (틀림!! 문제파악 제대로)
+SELECT E.DEPTNO, D.DNAME, E.EMPNO, E.ENAME, E.JOB, E.SAL
+    FROM EMP E JOIN DEPT D ON (E.DEPTNO = D.DEPTNO)
+   ORDER BY DEPTNO, ENAME;
+   
+SELECT D.DEPTNO, D.DNAME, E.EMPNO, E.ENAME, E.JOB, E.SAL
+  FROM EMP E RIGHT OUTER JOIN DEPT D ON (E.DEPTNO = D.DEPTNO)
+ORDER BY D.DEPTNO, E.ENAME;
+
+-- 8-4
+SELECT D.DEPTNO, D.DNAME,
+       E1.EMPNO, E1.ENAME, E1.MGR, E1.SAL,
+       D.DEPTNO AS DEPTNO_1,
+       S.LOSAL, S.HISAL, S.GRADE,
+       E2.EMPNO AS MGR_EMPNO, E2.ENAME AS MGR_ENAME
+    FROM EMP E1 FULL OUTER JOIN DEPT D ON (E1.DEPTNO = D.DEPTNO) 
+    FULL OUTER JOIN SALGRADE S ON (E1.SAL BETWEEN S.LOSAL AND S.HISAL)
+    LEFT OUTER JOIN EMP E2 ON (E1.MGR = E2.EMPNO)
+   ORDER BY D.DEPTNO, E1.EMPNO;
+   
+SELECT D.DEPTNO, D.DNAME,
+       E.EMPNO, E.ENAME, E.MGR, E.SAL, E.DEPTNO, -- 중복되면 자동으로 _1로 바뀜
+       S.LOSAL, S.HISAL, S.GRADE,
+       E2.EMPNO AS MGR_EMPNO, E2.ENAME AS MGR_ENAME
+  FROM EMP E RIGHT OUTER JOIN DEPT D
+                ON (E.DEPTNO = D.DEPTNO)
+              LEFT OUTER JOIN SALGRADE S
+                ON (E.SAL BETWEEN S.LOSAL AND S.HISAL)
+              LEFT OUTER JOIN EMP E2
+                ON (E.MGR = E2.EMPNO)
+ORDER BY D.DEPTNO, E.EMPNO; 
+
+-- 서브 쿼리 : 주로 WHERE 절 안에 또 다른 SQL문이 들어감
+
+-- JONES보다 급여가 높은 사원을 조회하고 싶을 때
+-- 1. JONES의 급여를 찾는다
+SELECT SAL
+    FROM EMP
+   WHERE ENAME = 'JONES';
+-- 2. 이후 JONES의 급여로 조건
+SELECT *
+    FROM EMP
+   WHERE SAL > 2975;
+   
+-- 이 과정을 한 번에
+
+SELECT *
+    FROM EMP
+   WHERE SAL > (SELECT SAL
+                   FROM EMP
+                  WHERE ENAME = 'JONES')
+   ORDER BY SAL;
+
+-- 서브쿼리에서는 몇몇 경우를 제외하고는 ORDER BY절을 사용할 수 없음!
