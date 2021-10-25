@@ -1419,3 +1419,200 @@ SELECT *
    ORDER BY SAL;
 
 -- 서브쿼리에서는 몇몇 경우를 제외하고는 ORDER BY절을 사용할 수 없음!
+-- 서브쿼리의 SELECT문에서는 메인쿼리의 SELECT저과 같은 자료형과 같은 개수로 지정해야 함
+
+-- 단일행 서브쿼리 : 서브쿼리에서 출력되는 겨로가가 하나인 경우
+-- JONES가 여러 명이라면 단일행 서브쿼리로 구현 못함
+-- 다중행 서브쿼리를 사용해야함
+-- 단일행 서브쿼리는 주로 비교연산자가 있음
+
+-- 서브쿼리의 결과 값이 날짜형인 경우
+SELECT *
+    FROM EMP
+   WHERE HIREDATE < (SELECT HIREDATE
+                        FROM EMP
+                       WHERE ENAME = 'SCOTT');
+                       
+-- 서브쿼리 안에서 함수를 사용하는 경우
+SELECT E.EMPNO, E.ENAME, E.JOB, E.SAL, D.DEPTNO, D.DNAME, D.LOC
+    FROM EMP E JOIN DEPT D ON (E.DEPTNO = D.DEPTNO)
+   WHERE E.DEPTNO = 20
+     AND E.SAL > (SELECT AVG(SAL)
+                    FROM EMP);
+                    
+-- 다중행 서브쿼리
+-- 다중행 연산자 : IN, ANY, SOME, ALL, EXISTS
+
+-- IN 연산자 : 각 부서별 최고 급여를 받는 사원 정보 출력하기
+SELECT *
+    FROM EMP
+   WHERE SAL IN (SELECT MAX(SAL)
+                    FROM EMP
+                   GROUP BY DEPTNO);
+                   
+-- ANY, SOME 연산자
+-- 서브쿼리 결과 값 중 메인쿼리와 조건식을 사용한 결과가 하나라도 TRUE라면 반환
+-- 30번 부서 사원들의 최대 급여보다 적은 급여를 받는 사원정보 출력하기
+
+SELECT *
+    FROM EMP
+   WHERE SAL < ANY(SELECT SAL
+                    FROM EMP
+                   WHERE DEPTNO = 30)
+  ORDER BY SAL, EMPNO;
+  
+SELECT *
+    FROM EMP
+   WHERE SAL < ALL(SELECT SAL
+                    FROM EMP
+                   WHERE DEPTNO = 30)
+  ORDER BY SAL, EMPNO;
+-- 같은 결과값
+
+
+-- 30 부서 사원들의 최소 급여보다 많은 급여를 받는 사원정보
+SELECT *
+    FROM EMP
+   WHERE SAL > ANY(SELECT SAL
+                    FROM EMP
+                   WHERE DEPTNO = 30)
+  ORDER BY SAL, EMPNO;
+
+-- 30 부서 사원들의 최대 급여보다 더 많은 급여를 받는 사원정보
+SELECT *
+    FROM EMP
+   WHERE SAL > ALL(SELECT SAL
+                    FROM EMP
+                   WHERE DEPTNO = 30)
+  ORDER BY SAL, EMPNO;
+-- 다른값!! 주의해서 사용해야 함
+
+
+-- EXISTS 연산자 : 서브쿼리 결과값이 하나 이상 존재하면 조건식 모두 TRUE, 없으면 FALSE
+SELECT *
+    FROM EMP
+   WHERE EXISTS(SELECT DNAME
+                    FROM DEPT
+                   WHERE DEPTNO = 10);
+-- 서브쿼리의 결과 값이 존재하므로 EMP의 모든 행을 출력!
+SELECT *
+    FROM EMP
+   WHERE EXISTS(SELECT DNAME
+                    FROM DEPT
+                   WHERE DEPTNO = 50);
+-- 서브쿼리의 결과 값이 존재하지 않으므로 빈 행을 출력!
+-- 거의 사용하지 않음
+-- 특정 서브쿼리 결과값의 유무를 통해 메인쿼리의 데이터 노출 여부를 결정할 때 간혹 쓰임
+
+-- 1분 복습
+SELECT *
+    FROM EMP
+   WHERE HIREDATE < ALL(SELECT HIREDATE
+                            FROM EMP
+                           WHERE DEPTNO = 10);
+                           
+-- 비교할 열이 여러개인 다중열 서브쿼리
+SELECT *
+    FROM EMP
+   WHERE (DEPTNO, SAL) IN (SELECT DEPTNO, MAX(SAL)
+                            FROM EMP
+                           GROUP BY DEPTNO);
+                           
+
+-- FROM 절에 사용하는 서브쿼리와 WITH절(인라인 뷰)
+SELECT E10.EMPNO, E10.ENAME, E10.DEPTNO, D.DNAME, D.LOC
+    FROM (SELECT * FROM EMP WHERE DEPTNO = 10) E10,
+         (SELECT * FROM DEPT) D
+   WHERE E10.DEPTNO = D.DEPTNO;
+-- 먼저 특정 테이블을 선택한 후 SELECT하는 기법
+-- 테이블 내 데이터 규모가 너무 크거나, 현재 작업에 불필요한 열이 너무 많을 때 사용
+-- 가독성이 떨어질 염려가 있을 때 WITH절을 사용
+
+WITH
+E10 AS (SELECT * FROM EMP WHERE DEPTNO = 10),
+D   AS (SELECT * FROM DEPT)
+--------------------------------------------------------------- WITH 절
+SELECT E10.EMPNO, E10.ENAME, E10.DEPTNO, D.DNAME, D.LOC
+    FROM E10, D
+   WHERE E10.DEPTNO = D.DEPTNO;
+   
+-- 메인 쿼리가 될 SELECT문 안에서 사용할 서브쿼리와 별칭을 먼저 지정한 후
+-- 메인쿼리에서 사용
+
+-- SELECT 절에서 사용하는 서브쿼리(스칼라 서브쿼리)
+-- 스칼라 서브쿼리 = 하나의 새로운 열로 추가되는 원리
+-- 하나의 결과만 반환되도록 작성해야 함!(열로 추가되므로)
+SELECT EMPNO, ENAME, JOB, SAL,
+       (SELECT GRADE
+            FROM SALGRADE
+           WHERE E.SAL BETWEEN LOSAL AND HISAL) AS SALGRADE,
+         DEPTNO,
+         (SELECT DNAME
+            FROM DEPT
+           WHERE E.DEPTNO = DEPT.DEPTNO) AS DNAME
+    FROM EMP E;
+
+-- 9-1
+SELECT E.JOB, E.EMPNO, E.ENAME, E.SAL,
+       D.DEPTNO, D.DNAME
+    FROM EMP E JOIN DEPT D ON (E.DEPTNO = D.DEPTNO)
+   WHERE E.JOB = (SELECT JOB
+                    FROM EMP
+                   WHERE ENAME = 'ALLEN');
+                   
+SELECT E.JOB, E.EMPNO, E.ENAME, E.SAL, E.DEPTNO, D.DNAME
+  FROM EMP E, DEPT D
+ WHERE E.DEPTNO = D.DEPTNO
+   AND JOB = (SELECT JOB
+                FROM EMP
+               WHERE ENAME = 'ALLEN'); 
+
+-- 9-2
+SELECT E.EMPNO, E.ENAME, D.DNAME, E.HIREDATE, D.LOC, E.SAL, S.GRADE
+    FROM EMP E JOIN DEPT D
+               ON (E.DEPTNO = D.DEPTNO)
+               JOIN SALGRADE S
+               ON (SAL BETWEEN LOSAL AND HISAL)
+   WHERE SAL > (SELECT AVG(SAL)
+                    FROM EMP)
+  ORDER BY SAL DESC, EMPNO;
+  
+SELECT E.EMPNO, E.ENAME, D.DNAME, E.HIREDATE, D.LOC, E.SAL, S.GRADE
+  FROM EMP E, DEPT D, SALGRADE S
+ WHERE E.DEPTNO = D.DEPTNO
+   AND E.SAL BETWEEN S.LOSAL AND S.HISAL
+   AND SAL > (SELECT AVG(SAL)
+                FROM EMP)
+ORDER BY E.SAL DESC, E.EMPNO; 
+
+-- 9-3
+SELECT E.EMPNO, E.ENAME, E.JOB, D.DEPTNO, D.DNAME, D.LOC
+    FROM EMP E JOIN DEPT D ON (E.DEPTNO = D.DEPTNO)
+   WHERE E.DEPTNO = 10
+   AND E.JOB NOT IN (SELECT JOB
+                        FROM EMP
+                       WHERE DEPTNO = 30); 
+                       
+SELECT E.EMPNO, E.ENAME, E.JOB, E.DEPTNO, D.DNAME, D.LOC
+  FROM EMP E, DEPT D
+ WHERE E.DEPTNO = D.DEPTNO
+   AND E.DEPTNO = 10
+   AND JOB NOT IN (SELECT DISTINCT JOB
+                     FROM EMP
+                    WHERE DEPTNO = 30); 
+                    
+-- 9-4
+SELECT E.EMPNO, E.ENAME, E.SAL, S.GRADE
+    FROM EMP E JOIN SALGRADE S ON (E.SAL BETWEEN LOSAL AND HISAL)
+   WHERE SAL > (SELECT MAX(SAL)
+                    FROM EMP
+                   WHERE JOB = 'SALESMAN')
+   ORDER BY EMPNO;
+   
+SELECT E.EMPNO, E.ENAME, E.SAL, S.GRADE
+  FROM EMP E, SALGRADE S
+ WHERE E.SAL BETWEEN S.LOSAL AND S.HISAL
+   AND SAL > ALL (SELECT DISTINCT SAL
+                    FROM EMP
+                   WHERE JOB = 'SALESMAN')
+ORDER BY E.EMPNO; 
