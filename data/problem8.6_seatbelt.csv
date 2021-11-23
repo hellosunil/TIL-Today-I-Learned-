@@ -1,5 +1,0 @@
-parent_seatbelt,child_seatbelt,freq
-yes,yes,6
-yes,no,10
-no,yes,5
-no,no,20
